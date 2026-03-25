@@ -13,29 +13,37 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(229, 231, 235, 1);
         }
+        .tab-active {
+            border-bottom: 2px solid #4f46e5;
+            color: #4f46e5;
+        }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-12">
-    <div id="app" class="max-w-5xl mx-auto px-4 py-8">
+<body class="bg-slate-50 min-h-screen pb-12 text-slate-900">
+    <div id="app" class="max-w-6xl mx-auto px-4 py-8">
         <!-- Header -->
         <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Trader Profit Dashboard</h1>
+                <h1 class="text-3xl font-bold tracking-tight">Trader Profit Dashboard</h1>
                 <p class="text-slate-500">Track inventory, sales, and daily performance</p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
+                <button onclick="exportToCSV()" class="px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export CSV
+                </button>
                 <button onclick="resetData()" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                     Reset Day
                 </button>
-                <div class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold shadow-sm">
+                <div class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold shadow-md">
                     Total Daily Profit: <span id="total-profit-display">$0.00</span>
                 </div>
             </div>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Left Column: Input Forms -->
-            <div class="space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column: Input Forms (4 cols) -->
+            <div class="lg:col-span-4 space-y-6">
                 <!-- Buy Form -->
                 <section class="glass-card rounded-2xl p-6 shadow-sm">
                     <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -50,11 +58,11 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Qty Bought</label>
-                                <input type="number" id="buy-qty" placeholder="0" step="any" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" required>
+                                <input type="number" id="buy-qty" placeholder="0" step="any" min="0.01" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" required>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Unit Cost</label>
-                                <input type="number" id="buy-price" placeholder="0.00" step="0.01" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" required>
+                                <input type="number" id="buy-price" placeholder="0.00" step="0.01" min="0" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" required>
                             </div>
                         </div>
                         <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md active:scale-[0.98]">
@@ -79,11 +87,11 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Qty Sold</label>
-                                <input type="number" id="sell-qty" placeholder="0" step="any" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
+                                <input type="number" id="sell-qty" placeholder="0" step="any" min="0.01" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Sell Price</label>
-                                <input type="number" id="sell-price" placeholder="0.00" step="0.01" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
+                                <input type="number" id="sell-price" placeholder="0.00" step="0.01" min="0" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
                             </div>
                         </div>
                         <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md active:scale-[0.98]">
@@ -93,71 +101,99 @@
                 </section>
             </div>
 
-            <!-- Right Column: Tables and Summary -->
-            <div class="lg:col-span-2 space-y-6">
+            <!-- Right Column: Tables and History (8 cols) -->
+            <div class="lg:col-span-8 space-y-6">
                 <!-- Summary Stats -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div class="glass-card p-4 rounded-2xl">
                         <p class="text-xs font-bold text-slate-400 uppercase mb-1">Daily Revenue</p>
-                        <p id="total-revenue" class="text-xl font-bold text-slate-800">$0.00</p>
+                        <p id="total-revenue" class="text-xl font-bold">$0.00</p>
                     </div>
                     <div class="glass-card p-4 rounded-2xl">
                         <p class="text-xs font-bold text-slate-400 uppercase mb-1">Total Cost</p>
-                        <p id="total-cost" class="text-xl font-bold text-slate-800">$0.00</p>
+                        <p id="total-cost" class="text-xl font-bold">$0.00</p>
                     </div>
                     <div class="glass-card p-4 rounded-2xl">
                         <p class="text-xs font-bold text-slate-400 uppercase mb-1">Margin %</p>
                         <p id="avg-margin" class="text-xl font-bold text-indigo-600">0%</p>
                     </div>
                     <div class="glass-card p-4 rounded-2xl border-l-4 border-l-emerald-500">
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Profit</p>
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-1 text-emerald-600">Total Profit</p>
                         <p id="total-profit-stat" class="text-xl font-bold text-emerald-600">$0.00</p>
                     </div>
                 </div>
 
-                <!-- Transaction List -->
-                <section class="glass-card rounded-2xl shadow-sm overflow-hidden">
+                <!-- Tabs Navigation -->
+                <div class="flex border-b border-slate-200">
+                    <button onclick="switchTab('analysis')" id="tab-btn-analysis" class="px-6 py-2 font-semibold transition-all tab-active">Profit Analysis</button>
+                    <button onclick="switchTab('history')" id="tab-btn-history" class="px-6 py-2 font-semibold text-slate-400 transition-all hover:text-slate-600">Transaction History</button>
+                </div>
+
+                <!-- Tab Content: Analysis -->
+                <section id="tab-content-analysis" class="glass-card rounded-2xl shadow-sm overflow-hidden">
                     <div class="px-6 py-4 border-b bg-slate-50/50 flex justify-between items-center">
-                        <h2 class="font-bold text-slate-700">Profit Analysis per Item</h2>
+                        <h2 class="font-bold text-slate-700 uppercase text-xs tracking-wider">Item Performance</h2>
                         <span class="text-xs text-slate-400" id="current-date"></span>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead class="text-xs uppercase text-slate-500 bg-slate-50">
+                            <thead class="text-[10px] uppercase text-slate-400 bg-slate-50 font-bold">
                                 <tr>
-                                    <th class="px-6 py-3">Item</th>
+                                    <th class="px-6 py-3">Item Name</th>
                                     <th class="px-6 py-3 text-right">Sold / Total</th>
-                                    <th class="px-6 py-3 text-right">Avg Buy</th>
+                                    <th class="px-6 py-3 text-right">Avg Cost</th>
                                     <th class="px-6 py-3 text-right">Avg Sell</th>
-                                    <th class="px-6 py-3 text-right font-bold text-emerald-700">Profit</th>
+                                    <th class="px-6 py-3 text-right font-bold text-emerald-700">Net Profit</th>
                                 </tr>
                             </thead>
                             <tbody id="inventory-table-body" class="divide-y divide-slate-100">
-                                <!-- Items injected here -->
+                                <tr><td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">No data yet.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Tab Content: History -->
+                <section id="tab-content-history" class="glass-card rounded-2xl shadow-sm overflow-hidden hidden">
+                    <div class="px-6 py-4 border-b bg-slate-50/50">
+                        <h2 class="font-bold text-slate-700 uppercase text-xs tracking-wider">Activity Log</h2>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead class="text-[10px] uppercase text-slate-400 bg-slate-50 font-bold">
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-400">
-                                        No transactions yet today. Add your first stock buy to start.
-                                    </td>
+                                    <th class="px-6 py-3">Time</th>
+                                    <th class="px-6 py-3">Type</th>
+                                    <th class="px-6 py-3">Item</th>
+                                    <th class="px-6 py-3 text-right">Qty</th>
+                                    <th class="px-6 py-3 text-right">Price</th>
+                                    <th class="px-6 py-3 text-right">Total</th>
+                                    <th class="px-6 py-3 text-center">Action</th>
                                 </tr>
+                            </thead>
+                            <tbody id="history-table-body" class="divide-y divide-slate-100 text-sm">
+                                <tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">No activity recorded.</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </section>
                 
-                <div id="message-container" class="fixed bottom-4 right-4 z-50 pointer-events-none"></div>
+                <div id="message-container" class="fixed bottom-4 right-4 z-50 pointer-events-none flex flex-col items-end"></div>
             </div>
         </div>
     </div>
 
     <script>
-        // Data Structure
-        let inventory = JSON.parse(localStorage.getItem('trader_inventory')) || {};
+        // Data State
+        let transactions = JSON.parse(localStorage.getItem('trader_history')) || [];
         
         // DOM Elements
         const buyForm = document.getElementById('buy-form');
         const sellForm = document.getElementById('sell-form');
         const selectItem = document.getElementById('sell-item-select');
-        const tableBody = document.getElementById('inventory-table-body');
+        const inventoryTable = document.getElementById('inventory-table-body');
+        const historyTable = document.getElementById('history-table-body');
+        
         const totalProfitDisplay = document.getElementById('total-profit-display');
         const totalProfitStat = document.getElementById('total-profit-stat');
         const totalRevenueEl = document.getElementById('total-revenue');
@@ -170,11 +206,35 @@
             renderApp();
         };
 
-        // UI Notification
+        // Tabs Logic
+        function switchTab(tab) {
+            const analysisBtn = document.getElementById('tab-btn-analysis');
+            const historyBtn = document.getElementById('tab-btn-history');
+            const analysisContent = document.getElementById('tab-content-analysis');
+            const historyContent = document.getElementById('tab-content-history');
+
+            if (tab === 'analysis') {
+                analysisBtn.classList.add('tab-active');
+                analysisBtn.classList.remove('text-slate-400');
+                historyBtn.classList.remove('tab-active');
+                historyBtn.classList.add('text-slate-400');
+                analysisContent.classList.remove('hidden');
+                historyContent.classList.add('hidden');
+            } else {
+                historyBtn.classList.add('tab-active');
+                historyBtn.classList.remove('text-slate-400');
+                analysisBtn.classList.remove('tab-active');
+                analysisBtn.classList.add('text-slate-400');
+                historyContent.classList.remove('hidden');
+                analysisContent.classList.add('hidden');
+            }
+        }
+
+        // Notification
         function notify(msg, type = 'success') {
             const container = document.getElementById('message-container');
             const el = document.createElement('div');
-            el.className = `mb-2 px-6 py-3 rounded-lg shadow-lg text-white pointer-events-auto transition-all duration-300 transform translate-y-0 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`;
+            el.className = `mb-2 px-6 py-3 rounded-xl shadow-lg text-white pointer-events-auto transition-all duration-300 transform translate-y-0 text-sm font-medium ${type === 'success' ? 'bg-slate-800' : 'bg-red-600'}`;
             el.innerText = msg;
             container.appendChild(el);
             setTimeout(() => {
@@ -183,33 +243,29 @@
             }, 3000);
         }
 
-        // Action: Buy Stock
+        // Action: Buy
         buyForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const name = document.getElementById('buy-item').value.trim();
             const qty = parseFloat(document.getElementById('buy-qty').value);
             const price = parseFloat(document.getElementById('buy-price').value);
 
-            if (!inventory[name]) {
-                inventory[name] = {
-                    totalQtyBought: 0,
-                    totalCost: 0,
-                    qtySold: 0,
-                    revenue: 0,
-                    history: []
-                };
-            }
+            const tx = {
+                id: Date.now() + Math.random(),
+                type: 'buy',
+                item: name,
+                qty: qty,
+                price: price,
+                timestamp: new Date().toISOString()
+            };
 
-            inventory[name].totalQtyBought += qty;
-            inventory[name].totalCost += (qty * price);
-            inventory[name].history.push({ type: 'buy', qty, price, time: Date.now() });
-
+            transactions.push(tx);
             saveAndRefresh();
             buyForm.reset();
             notify(`Added ${qty} ${name} to stock.`);
         });
 
-        // Action: Sell Stock
+        // Action: Sell
         sellForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const name = selectItem.value;
@@ -218,102 +274,202 @@
 
             if (!name) return notify("Please select an item", "error");
             
-            const item = inventory[name];
-            const stockRemaining = item.totalQtyBought - item.qtySold;
+            // Validate stock
+            const summary = getInventorySummary();
+            const stockAvailable = summary[name] ? summary[name].totalQtyBought - summary[name].qtySold : 0;
 
-            if (qty > stockRemaining) {
-                return notify(`Insufficient stock. Only ${stockRemaining.toFixed(2)} remaining.`, "error");
+            if (qty > stockAvailable) {
+                return notify(`Only ${stockAvailable.toFixed(2)} units of ${name} left!`, "error");
             }
 
-            item.qtySold += qty;
-            item.revenue += (qty * price);
-            item.history.push({ type: 'sell', qty, price, time: Date.now() });
+            const tx = {
+                id: Date.now() + Math.random(),
+                type: 'sell',
+                item: name,
+                qty: qty,
+                price: price,
+                timestamp: new Date().toISOString()
+            };
 
+            transactions.push(tx);
             saveAndRefresh();
             sellForm.reset();
             notify(`Logged sale of ${qty} ${name}.`);
         });
 
+        // Delete specific transaction
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            saveAndRefresh();
+            notify("Transaction removed", "success");
+        }
+
         function saveAndRefresh() {
-            localStorage.setItem('trader_inventory', JSON.stringify(inventory));
+            localStorage.setItem('trader_history', JSON.stringify(transactions));
             renderApp();
         }
 
         function resetData() {
-            if (confirm("Are you sure you want to clear all data for today? This cannot be undone.")) {
-                inventory = {};
+            if (confirm("Reset everything for today?")) {
+                transactions = [];
                 saveAndRefresh();
-                notify("All data cleared.");
+                notify("Daily data reset.");
             }
         }
 
+        // Core Calculation Engine
+        function getInventorySummary() {
+            const summary = {};
+            transactions.forEach(t => {
+                if (!summary[t.item]) {
+                    summary[t.item] = { 
+                        totalQtyBought: 0, 
+                        totalCost: 0, 
+                        qtySold: 0, 
+                        revenue: 0 
+                    };
+                }
+                if (t.type === 'buy') {
+                    summary[t.item].totalQtyBought += t.qty;
+                    summary[t.item].totalCost += (t.qty * t.price);
+                } else {
+                    summary[t.item].qtySold += t.qty;
+                    summary[t.item].revenue += (t.qty * t.price);
+                }
+            });
+            return summary;
+        }
+
         function renderApp() {
-            // Update Select Dropdown
+            const summary = getInventorySummary();
+            const sortedItems = Object.keys(summary).sort();
+
+            // 1. Update Dropdown
             const currentSelection = selectItem.value;
             selectItem.innerHTML = '<option value="">Choose item...</option>';
-            Object.keys(inventory).sort().forEach(name => {
-                const opt = document.createElement('option');
-                opt.value = name;
-                opt.textContent = `${name} (${(inventory[name].totalQtyBought - inventory[name].qtySold).toFixed(2)} in stock)`;
-                selectItem.appendChild(opt);
+            sortedItems.forEach(name => {
+                const stock = summary[name].totalQtyBought - summary[name].qtySold;
+                if (stock > 0) {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = `${name} (${stock.toFixed(2)} in stock)`;
+                    selectItem.appendChild(opt);
+                }
             });
             selectItem.value = currentSelection;
 
-            // Update Table
-            tableBody.innerHTML = '';
-            let grandTotalProfit = 0;
-            let grandTotalRevenue = 0;
-            let grandTotalCostOfGoodsSold = 0;
+            // 2. Update Profit Analysis Table
+            inventoryTable.innerHTML = '';
+            let gProfit = 0, gRevenue = 0, gCost = 0;
 
-            const items = Object.keys(inventory);
-
-            if (items.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400">No transactions recorded.</td></tr>`;
+            if (sortedItems.length === 0) {
+                inventoryTable.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">Add data to see analysis.</td></tr>`;
             } else {
-                items.forEach(name => {
-                    const item = inventory[name];
-                    const avgBuyPrice = item.totalCost / item.totalQtyBought;
-                    const costOfGoodsSold = item.qtySold * avgBuyPrice;
-                    const profit = item.revenue - costOfGoodsSold;
-                    const avgSellPrice = item.qtySold > 0 ? item.revenue / item.qtySold : 0;
+                sortedItems.forEach(name => {
+                    const item = summary[name];
+                    const avgCost = item.totalQtyBought > 0 ? item.totalCost / item.totalQtyBought : 0;
+                    const cogs = item.qtySold * avgCost;
+                    const profit = item.revenue - cogs;
+                    const avgSell = item.qtySold > 0 ? item.revenue / item.qtySold : 0;
 
-                    grandTotalProfit += profit;
-                    grandTotalRevenue += item.revenue;
-                    grandTotalCostOfGoodsSold += costOfGoodsSold;
+                    gProfit += profit;
+                    gRevenue += item.revenue;
+                    gCost += cogs;
 
                     const row = document.createElement('tr');
-                    row.className = "hover:bg-slate-50/80 transition-colors";
+                    row.className = "hover:bg-slate-50 transition-colors";
                     row.innerHTML = `
                         <td class="px-6 py-4">
-                            <div class="font-semibold text-slate-800">${name}</div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-tighter">Stock: ${(item.totalQtyBought - item.qtySold).toFixed(2)} left</div>
+                            <div class="font-bold text-slate-800">${name}</div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-tighter">Stock: ${(item.totalQtyBought - item.qtySold).toFixed(2)} units</div>
                         </td>
                         <td class="px-6 py-4 text-right">
-                            <span class="text-sm font-medium text-slate-600">${item.qtySold.toFixed(2)}</span>
+                            <span class="text-sm font-semibold">${item.qtySold.toFixed(2)}</span>
                             <span class="text-xs text-slate-400"> / ${item.totalQtyBought.toFixed(2)}</span>
                         </td>
-                        <td class="px-6 py-4 text-right text-slate-600 text-sm">$${avgBuyPrice.toFixed(2)}</td>
-                        <td class="px-6 py-4 text-right text-slate-600 text-sm">$${avgSellPrice.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right text-slate-500 text-sm">$${avgCost.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right text-slate-500 text-sm">$${avgSell.toFixed(2)}</td>
                         <td class="px-6 py-4 text-right">
                             <span class="font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}">
                                 $${profit.toFixed(2)}
                             </span>
                         </td>
                     `;
-                    tableBody.appendChild(row);
+                    inventoryTable.appendChild(row);
                 });
             }
 
-            // Update Summaries
-            const formattedProfit = `$${grandTotalProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            totalProfitDisplay.textContent = formattedProfit;
-            totalProfitStat.textContent = formattedProfit;
-            totalRevenueEl.textContent = `$${grandTotalRevenue.toLocaleString()}`;
-            totalCostEl.textContent = `$${grandTotalCostOfGoodsSold.toLocaleString()}`;
+            // 3. Update History Table
+            historyTable.innerHTML = '';
+            if (transactions.length === 0) {
+                historyTable.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">No activity yet.</td></tr>`;
+            } else {
+                [...transactions].reverse().forEach(t => {
+                    const row = document.createElement('tr');
+                    const time = new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    row.className = "hover:bg-slate-50";
+                    row.innerHTML = `
+                        <td class="px-6 py-3 text-slate-400 text-xs">${time}</td>
+                        <td class="px-6 py-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${t.type === 'buy' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">
+                                ${t.type}
+                            </span>
+                        </td>
+                        <td class="px-6 py-3 font-medium">${t.item}</td>
+                        <td class="px-6 py-3 text-right">${t.qty}</td>
+                        <td class="px-6 py-3 text-right text-slate-500">$${t.price.toFixed(2)}</td>
+                        <td class="px-6 py-3 text-right font-semibold">$${(t.qty * t.price).toFixed(2)}</td>
+                        <td class="px-6 py-3 text-center">
+                            <button onclick="deleteTransaction(${t.id})" class="text-slate-300 hover:text-red-500 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                            </button>
+                        </td>
+                    `;
+                    historyTable.appendChild(row);
+                });
+            }
+
+            // 4. Update Stats Cards
+            totalProfitDisplay.textContent = `$${gProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            totalProfitStat.textContent = `$${gProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            totalRevenueEl.textContent = `$${gRevenue.toLocaleString()}`;
+            totalCostEl.textContent = `$${gCost.toLocaleString()}`;
             
-            const margin = grandTotalRevenue > 0 ? (grandTotalProfit / grandTotalRevenue) * 100 : 0;
+            const margin = gRevenue > 0 ? (gProfit / gRevenue) * 100 : 0;
             marginEl.textContent = `${margin.toFixed(1)}%`;
             marginEl.className = `text-xl font-bold ${margin >= 0 ? 'text-indigo-600' : 'text-red-600'}`;
+        }
+
+        // Export functionality
+        function exportToCSV() {
+            if (transactions.length === 0) return notify("No data to export", "error");
+
+            const rows = [
+                ["Timestamp", "Type", "Item", "Quantity", "Price", "Total Value"]
+            ];
+
+            transactions.forEach(t => {
+                rows.push([
+                    t.timestamp,
+                    t.type.toUpperCase(),
+                    t.item,
+                    t.qty,
+                    t.price,
+                    (t.qty * t.price).toFixed(2)
+                ]);
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," 
+                + rows.map(e => e.join(",")).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `trader_profit_export_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            notify("CSV downloaded successfully");
         }
     </script>
 </body>
