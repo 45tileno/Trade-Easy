@@ -42,12 +42,12 @@
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Left Column: Input Forms (4 cols) -->
+            <!-- Left Column: Input Forms -->
             <div class="lg:col-span-4 space-y-6">
                 <!-- Buy Form -->
-                <section class="glass-card rounded-2xl p-6 shadow-sm">
-                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <span class="w-2 h-6 bg-emerald-500 rounded-full"></span>
+                <section class="glass-card rounded-2xl p-6 shadow-sm border-t-4 border-t-emerald-500">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                         Buy Stock (Entry)
                     </h2>
                     <form id="buy-form" class="space-y-4">
@@ -72,9 +72,9 @@
                 </section>
 
                 <!-- Sell Form -->
-                <section class="glass-card rounded-2xl p-6 shadow-sm">
-                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <span class="w-2 h-6 bg-blue-500 rounded-full"></span>
+                <section class="glass-card rounded-2xl p-6 shadow-sm border-t-4 border-t-blue-500">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-blue-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
                         Sell Stock (Exit)
                     </h2>
                     <form id="sell-form" class="space-y-4">
@@ -101,24 +101,29 @@
                 </section>
             </div>
 
-            <!-- Right Column: Tables and History (8 cols) -->
+            <!-- Right Column: Tables and History -->
             <div class="lg:col-span-8 space-y-6">
                 <!-- Summary Stats -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     <div class="glass-card p-4 rounded-2xl">
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Daily Revenue</p>
-                        <p id="total-revenue" class="text-xl font-bold">$0.00</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Revenue</p>
+                        <p id="total-revenue" class="text-xl font-bold text-slate-800">$0.00</p>
                     </div>
                     <div class="glass-card p-4 rounded-2xl">
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Total Cost</p>
-                        <p id="total-cost" class="text-xl font-bold">$0.00</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">C.O.G.S</p>
+                        <p id="total-cost" class="text-xl font-bold text-slate-800">$0.00</p>
+                    </div>
+                    <div class="glass-card p-4 rounded-2xl border-l-4 border-l-indigo-500">
+                        <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Inventory Val</p>
+                        <p id="total-stock-value" class="text-xl font-bold text-indigo-600">$0.00</p>
+                        <p class="text-[10px] text-slate-400 mt-1"><span id="total-stock-units">0</span> units</p>
                     </div>
                     <div class="glass-card p-4 rounded-2xl">
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Margin %</p>
-                        <p id="avg-margin" class="text-xl font-bold text-indigo-600">0%</p>
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Margin</p>
+                        <p id="avg-margin" class="text-xl font-bold">0%</p>
                     </div>
-                    <div class="glass-card p-4 rounded-2xl border-l-4 border-l-emerald-500">
-                        <p class="text-xs font-bold text-slate-400 uppercase mb-1 text-emerald-600">Total Profit</p>
+                    <div class="glass-card p-4 rounded-2xl bg-emerald-50/50 border-l-4 border-l-emerald-500 col-span-2 md:col-span-1">
+                        <p class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Net Profit</p>
                         <p id="total-profit-stat" class="text-xl font-bold text-emerald-600">$0.00</p>
                     </div>
                 </div>
@@ -140,14 +145,16 @@
                             <thead class="text-[10px] uppercase text-slate-400 bg-slate-50 font-bold">
                                 <tr>
                                     <th class="px-6 py-3">Item Name</th>
+                                    <th class="px-6 py-3 text-right">Stock Qty</th>
+                                    <th class="px-6 py-3 text-right">Stock Value</th>
                                     <th class="px-6 py-3 text-right">Sold / Total</th>
                                     <th class="px-6 py-3 text-right">Avg Cost</th>
-                                    <th class="px-6 py-3 text-right">Avg Sell</th>
-                                    <th class="px-6 py-3 text-right font-bold text-emerald-700">Net Profit</th>
+                                    <th class="px-6 py-3 text-right text-blue-700">Avg Sell</th>
+                                    <th class="px-6 py-3 text-right font-bold text-emerald-700">Profit</th>
                                 </tr>
                             </thead>
                             <tbody id="inventory-table-body" class="divide-y divide-slate-100">
-                                <tr><td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">No data yet.</td></tr>
+                                <tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">No data yet.</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -198,11 +205,14 @@
         const totalProfitStat = document.getElementById('total-profit-stat');
         const totalRevenueEl = document.getElementById('total-revenue');
         const totalCostEl = document.getElementById('total-cost');
+        const totalStockUnitsEl = document.getElementById('total-stock-units');
+        const totalStockValueEl = document.getElementById('total-stock-value');
         const marginEl = document.getElementById('avg-margin');
 
         // Initialization
         window.onload = () => {
-            document.getElementById('current-date').innerText = new Date().toLocaleDateString(undefined, { dateStyle: 'long' });
+            const dateStr = new Date().toLocaleDateString(undefined, { dateStyle: 'long' });
+            document.getElementById('current-date').innerText = dateStr;
             renderApp();
         };
 
@@ -274,7 +284,6 @@
 
             if (!name) return notify("Please select an item", "error");
             
-            // Validate stock
             const summary = getInventorySummary();
             const stockAvailable = summary[name] ? summary[name].totalQtyBought - summary[name].qtySold : 0;
 
@@ -297,7 +306,6 @@
             notify(`Logged sale of ${qty} ${name}.`);
         });
 
-        // Delete specific transaction
         function deleteTransaction(id) {
             transactions = transactions.filter(t => t.id !== id);
             saveAndRefresh();
@@ -360,35 +368,46 @@
 
             // 2. Update Profit Analysis Table
             inventoryTable.innerHTML = '';
-            let gProfit = 0, gRevenue = 0, gCost = 0;
+            let gProfit = 0, gRevenue = 0, gCost = 0, gStockUnits = 0, gStockValue = 0;
 
             if (sortedItems.length === 0) {
-                inventoryTable.innerHTML = `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">Add data to see analysis.</td></tr>`;
+                inventoryTable.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">Add data to see analysis.</td></tr>`;
             } else {
                 sortedItems.forEach(name => {
                     const item = summary[name];
                     const avgCost = item.totalQtyBought > 0 ? item.totalCost / item.totalQtyBought : 0;
+                    const avgSell = item.qtySold > 0 ? item.revenue / item.qtySold : 0;
                     const cogs = item.qtySold * avgCost;
                     const profit = item.revenue - cogs;
-                    const avgSell = item.qtySold > 0 ? item.revenue / item.qtySold : 0;
+                    const currentStock = item.totalQtyBought - item.qtySold;
+                    const currentStockValue = currentStock * avgCost;
 
                     gProfit += profit;
                     gRevenue += item.revenue;
                     gCost += cogs;
+                    gStockUnits += currentStock;
+                    gStockValue += currentStockValue;
 
                     const row = document.createElement('tr');
                     row.className = "hover:bg-slate-50 transition-colors";
                     row.innerHTML = `
                         <td class="px-6 py-4">
                             <div class="font-bold text-slate-800">${name}</div>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-tighter">Stock: ${(item.totalQtyBought - item.qtySold).toFixed(2)} units</div>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <span class="text-sm font-bold ${currentStock > 0 ? 'text-indigo-600' : 'text-slate-400'}">
+                                ${currentStock.toFixed(2)}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <span class="text-sm font-medium text-slate-600">$${currentStockValue.toFixed(2)}</span>
                         </td>
                         <td class="px-6 py-4 text-right">
                             <span class="text-sm font-semibold">${item.qtySold.toFixed(2)}</span>
                             <span class="text-xs text-slate-400"> / ${item.totalQtyBought.toFixed(2)}</span>
                         </td>
                         <td class="px-6 py-4 text-right text-slate-500 text-sm">$${avgCost.toFixed(2)}</td>
-                        <td class="px-6 py-4 text-right text-slate-500 text-sm">$${avgSell.toFixed(2)}</td>
+                        <td class="px-6 py-4 text-right text-blue-600 font-medium text-sm">$${avgSell.toFixed(2)}</td>
                         <td class="px-6 py-4 text-right">
                             <span class="font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}">
                                 $${profit.toFixed(2)}
@@ -432,8 +451,10 @@
             // 4. Update Stats Cards
             totalProfitDisplay.textContent = `$${gProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             totalProfitStat.textContent = `$${gProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            totalRevenueEl.textContent = `$${gRevenue.toLocaleString()}`;
-            totalCostEl.textContent = `$${gCost.toLocaleString()}`;
+            totalRevenueEl.textContent = `$${gRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            totalCostEl.textContent = `$${gCost.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            totalStockUnitsEl.textContent = gStockUnits.toFixed(1);
+            totalStockValueEl.textContent = `$${gStockValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
             const margin = gRevenue > 0 ? (gProfit / gRevenue) * 100 : 0;
             marginEl.textContent = `${margin.toFixed(1)}%`;
@@ -443,29 +464,15 @@
         // Export functionality
         function exportToCSV() {
             if (transactions.length === 0) return notify("No data to export", "error");
-
-            const rows = [
-                ["Timestamp", "Type", "Item", "Quantity", "Price", "Total Value"]
-            ];
-
+            const rows = [["Timestamp", "Type", "Item", "Quantity", "Price", "Total Value"]];
             transactions.forEach(t => {
-                rows.push([
-                    t.timestamp,
-                    t.type.toUpperCase(),
-                    t.item,
-                    t.qty,
-                    t.price,
-                    (t.qty * t.price).toFixed(2)
-                ]);
+                rows.push([t.timestamp, t.type.toUpperCase(), t.item, t.qty, t.price, (t.qty * t.price).toFixed(2)]);
             });
-
-            const csvContent = "data:text/csv;charset=utf-8," 
-                + rows.map(e => e.join(",")).join("\n");
-
+            const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `trader_profit_export_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute("download", `trader_export_${new Date().toISOString().split('T')[0]}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
