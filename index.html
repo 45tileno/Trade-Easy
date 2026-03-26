@@ -32,8 +32,11 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Export CSV
                 </button>
-                <button onclick="resetData()" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                    Reset Day
+                <button onclick="resetDayProfit()" class="px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
+                    Reset Day (Keep Stock)
+                </button>
+                <button onclick="fullReset()" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                    Wipe All Data
                 </button>
                 <div class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold shadow-md">
                     Total Daily Profit: <span id="total-profit-display">$0.00</span>
@@ -317,11 +320,47 @@
             renderApp();
         }
 
-        function resetData() {
-            if (confirm("Reset everything for today?")) {
+        /**
+         * Clears profit and sales history while preserving the remaining inventory.
+         * It calculates the leftover stock and its average cost, then clears all
+         * transactions and inserts the leftovers as "Initial/Carried Forward" stock.
+         */
+        function resetDayProfit() {
+            if (confirm("Reset Day? This will clear all sales and realize your profit, while keeping your current remaining stock for the next cycle.")) {
+                const summary = getInventorySummary();
+                const newTransactions = [];
+                
+                // For every item that has stock remaining
+                Object.keys(summary).forEach(name => {
+                    const item = summary[name];
+                    const remainingQty = item.totalQtyBought - item.qtySold;
+                    
+                    if (remainingQty > 0) {
+                        const avgCost = item.totalCost / item.totalQtyBought;
+                        // Add as a new "Carried Forward" buy transaction
+                        newTransactions.push({
+                            id: Date.now() + Math.random(),
+                            type: 'buy',
+                            item: name,
+                            qty: remainingQty,
+                            price: avgCost,
+                            timestamp: new Date().toISOString(),
+                            note: 'Carried Forward'
+                        });
+                    }
+                });
+
+                transactions = newTransactions;
+                saveAndRefresh();
+                notify("Daily profit cleared. Inventory carried forward.");
+            }
+        }
+
+        function fullReset() {
+            if (confirm("DANGER: This will permanently delete ALL stock and transaction data. Are you sure?")) {
                 transactions = [];
                 saveAndRefresh();
-                notify("Daily data reset.");
+                notify("All data wiped clean.");
             }
         }
 
@@ -434,7 +473,10 @@
                                 ${t.type}
                             </span>
                         </td>
-                        <td class="px-6 py-3 font-medium">${t.item}</td>
+                        <td class="px-6 py-3 font-medium flex items-center gap-2">
+                            ${t.item}
+                            ${t.note ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-1 rounded font-normal italic">${t.note}</span>` : ''}
+                        </td>
                         <td class="px-6 py-3 text-right">${t.qty}</td>
                         <td class="px-6 py-3 text-right text-slate-500">$${t.price.toFixed(2)}</td>
                         <td class="px-6 py-3 text-right font-semibold">$${(t.qty * t.price).toFixed(2)}</td>
@@ -464,9 +506,9 @@
         // Export functionality
         function exportToCSV() {
             if (transactions.length === 0) return notify("No data to export", "error");
-            const rows = [["Timestamp", "Type", "Item", "Quantity", "Price", "Total Value"]];
+            const rows = [["Timestamp", "Type", "Item", "Quantity", "Price", "Total Value", "Note"]];
             transactions.forEach(t => {
-                rows.push([t.timestamp, t.type.toUpperCase(), t.item, t.qty, t.price, (t.qty * t.price).toFixed(2)]);
+                rows.push([t.timestamp, t.type.toUpperCase(), t.item, t.qty, t.price, (t.qty * t.price).toFixed(2), t.note || ""]);
             });
             const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
             const encodedUri = encodeURI(csvContent);
