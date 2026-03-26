@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Trader Profit Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- PDF Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -28,8 +31,11 @@
                 <p class="text-slate-500">Track inventory, sales, and daily performance</p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
-                <button onclick="exportToCSV()" class="px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-2">
+                <button onclick="downloadPDFReport()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-2 shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download PDF Report
+                </button>
+                <button onclick="exportToCSV()" class="px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-2">
                     Export CSV
                 </button>
                 <button onclick="resetDayProfit()" class="px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
@@ -38,8 +44,8 @@
                 <button onclick="fullReset()" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
                     Wipe All Data
                 </button>
-                <div class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold shadow-md">
-                    Total Daily Profit: <span id="total-profit-display">$0.00</span>
+                <div class="px-4 py-2 bg-slate-800 text-white rounded-lg font-semibold shadow-md">
+                    Total Profit: <span id="total-profit-display">$0.00</span>
                 </div>
             </div>
         </header>
@@ -144,7 +150,7 @@
                         <span class="text-xs text-slate-400" id="current-date"></span>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left">
+                        <table class="w-full text-left" id="main-analysis-table">
                             <thead class="text-[10px] uppercase text-slate-400 bg-slate-50 font-bold">
                                 <tr>
                                     <th class="px-6 py-3">Item Name</th>
@@ -320,24 +326,22 @@
             renderApp();
         }
 
-        /**
-         * Clears profit and sales history while preserving the remaining inventory.
-         * It calculates the leftover stock and its average cost, then clears all
-         * transactions and inserts the leftovers as "Initial/Carried Forward" stock.
-         */
         function resetDayProfit() {
-            if (confirm("Reset Day? This will clear all sales and realize your profit, while keeping your current remaining stock for the next cycle.")) {
+            const hasData = transactions.length > 0;
+            if (!hasData) return notify("Nothing to reset", "error");
+
+            const confirmMsg = "Reset Day? This clears today's sales and profits while carrying over your remaining stock. \n\nTip: Download the PDF report first!";
+            
+            if (confirm(confirmMsg)) {
                 const summary = getInventorySummary();
                 const newTransactions = [];
                 
-                // For every item that has stock remaining
                 Object.keys(summary).forEach(name => {
                     const item = summary[name];
                     const remainingQty = item.totalQtyBought - item.qtySold;
                     
                     if (remainingQty > 0) {
                         const avgCost = item.totalCost / item.totalQtyBought;
-                        // Add as a new "Carried Forward" buy transaction
                         newTransactions.push({
                             id: Date.now() + Math.random(),
                             type: 'buy',
@@ -410,7 +414,7 @@
             let gProfit = 0, gRevenue = 0, gCost = 0, gStockUnits = 0, gStockValue = 0;
 
             if (sortedItems.length === 0) {
-                inventoryTable.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">Add data to see analysis.</td></tr>`;
+                inventoryTable.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">No data yet.</td></tr>`;
             } else {
                 sortedItems.forEach(name => {
                     const item = summary[name];
@@ -503,7 +507,94 @@
             marginEl.className = `text-xl font-bold ${margin >= 0 ? 'text-indigo-600' : 'text-red-600'}`;
         }
 
-        // Export functionality
+        // --- EXPORT FEATURES ---
+
+        function downloadPDFReport() {
+            if (transactions.length === 0) return notify("No data to report", "error");
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const date = new Date().toLocaleDateString();
+            const summary = getInventorySummary();
+            const sortedItems = Object.keys(summary).sort();
+
+            // Header
+            doc.setFontSize(20);
+            doc.text("Trader Daily Profit Report", 14, 22);
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Generated on: ${date}`, 14, 28);
+
+            // Summary Stats Section
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text("Performance Overview", 14, 40);
+
+            const gRev = document.getElementById('total-revenue').innerText;
+            const gCost = document.getElementById('total-cost').innerText;
+            const gProf = document.getElementById('total-profit-stat').innerText;
+            const gMargin = document.getElementById('avg-margin').innerText;
+
+            doc.autoTable({
+                startY: 45,
+                head: [['Total Revenue', 'Total COGS', 'Net Profit', 'Avg Margin']],
+                body: [[gRev, gCost, gProf, gMargin]],
+                theme: 'grid',
+                headStyles: { fillColor: [79, 70, 229] }
+            });
+
+            // Item Performance Table
+            doc.text("Item Performance Analysis", 14, doc.lastAutoTable.finalY + 15);
+            
+            const analysisBody = sortedItems.map(name => {
+                const item = summary[name];
+                const avgCost = item.totalQtyBought > 0 ? (item.totalCost / item.totalQtyBought).toFixed(2) : "0.00";
+                const avgSell = item.qtySold > 0 ? (item.revenue / item.qtySold).toFixed(2) : "0.00";
+                const profit = (item.revenue - (item.qtySold * parseFloat(avgCost))).toFixed(2);
+                const currentStock = (item.totalQtyBought - item.qtySold).toFixed(2);
+                
+                return [
+                    name,
+                    currentStock,
+                    `${item.qtySold.toFixed(2)} / ${item.totalQtyBought.toFixed(2)}`,
+                    `$${avgCost}`,
+                    `$${avgSell}`,
+                    `$${profit}`
+                ];
+            });
+
+            doc.autoTable({
+                startY: doc.lastAutoTable.finalY + 20,
+                head: [['Item Name', 'In Stock', 'Sold/Total', 'Avg Cost', 'Avg Sell', 'Profit']],
+                body: analysisBody,
+                headStyles: { fillColor: [51, 65, 85] }
+            });
+
+            // Transaction History Table
+            doc.addPage();
+            doc.text("Detailed Transaction History", 14, 22);
+            
+            const historyBody = [...transactions].reverse().map(t => [
+                new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                t.type.toUpperCase(),
+                t.item,
+                t.qty,
+                `$${t.price.toFixed(2)}`,
+                `$${(t.qty * t.price).toFixed(2)}`,
+                t.note || ""
+            ]);
+
+            doc.autoTable({
+                startY: 30,
+                head: [['Time', 'Type', 'Item', 'Qty', 'Price', 'Total', 'Note']],
+                body: historyBody,
+                headStyles: { fillColor: [100, 116, 139] }
+            });
+
+            doc.save(`Trader_Report_${date.replace(/\//g, '-')}.pdf`);
+            notify("PDF Report downloaded");
+        }
+
         function exportToCSV() {
             if (transactions.length === 0) return notify("No data to export", "error");
             const rows = [["Timestamp", "Type", "Item", "Quantity", "Price", "Total Value", "Note"]];
