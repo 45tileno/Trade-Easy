@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Daily Trader Profit Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PDF Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -20,6 +19,13 @@
             border-bottom: 2px solid #4f46e5;
             color: #4f46e5;
         }
+        .edit-highlight {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { background-color: rgba(79, 70, 229, 0.05); }
+            50% { background-color: rgba(79, 70, 229, 0.15); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-12 text-slate-900">
@@ -33,16 +39,13 @@
             <div class="flex flex-wrap items-center gap-3">
                 <button onclick="downloadPDFReport()" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-2 shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Download PDF Report
-                </button>
-                <button onclick="exportToCSV()" class="px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-2">
-                    Export CSV
+                    Download PDF
                 </button>
                 <button onclick="resetDayProfit()" class="px-4 py-2 text-sm font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-lg transition-colors">
-                    Reset Day (Keep Stock)
+                    Reset Day
                 </button>
                 <button onclick="fullReset()" class="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
-                    Wipe All Data
+                    Wipe All
                 </button>
                 <div class="px-4 py-2 bg-slate-800 text-white rounded-lg font-semibold shadow-md">
                     Total Profit: <span id="total-profit-display">$0.00</span>
@@ -55,11 +58,15 @@
             <div class="lg:col-span-4 space-y-6">
                 <!-- Buy Form -->
                 <section class="glass-card rounded-2xl p-6 shadow-sm border-t-4 border-t-emerald-500">
-                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-                        Buy Stock (Entry)
-                    </h2>
+                    <div class="flex justify-between items-start mb-4">
+                        <h2 class="text-lg font-semibold flex items-center gap-2 text-emerald-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            Buy Stock (Entry)
+                        </h2>
+                        <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded font-bold uppercase">Auto-Merge</span>
+                    </div>
                     <form id="buy-form" class="space-y-4">
+                        <input type="hidden" id="edit-id">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Item Name</label>
                             <input type="text" id="buy-item" placeholder="e.g. Apples" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all" required>
@@ -74,9 +81,10 @@
                                 <input type="number" id="buy-price" placeholder="0.00" step="0.01" min="0" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" required>
                             </div>
                         </div>
-                        <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md active:scale-[0.98]">
+                        <button type="submit" id="buy-submit-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md active:scale-[0.98]">
                             Add to Inventory
                         </button>
+                        <button type="button" id="cancel-edit-buy" class="hidden w-full py-2 text-slate-500 text-sm font-medium">Cancel Edit</button>
                     </form>
                 </section>
 
@@ -87,6 +95,7 @@
                         Sell Stock (Exit)
                     </h2>
                     <form id="sell-form" class="space-y-4">
+                        <input type="hidden" id="edit-id-sell">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Select Item</label>
                             <select id="sell-item-select" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" required>
@@ -103,9 +112,10 @@
                                 <input type="number" id="sell-price" placeholder="0.00" step="0.01" min="0" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" required>
                             </div>
                         </div>
-                        <button type="submit" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md active:scale-[0.98]">
+                        <button type="submit" id="sell-submit-btn" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md active:scale-[0.98]">
                             Log Sale
                         </button>
+                        <button type="button" id="cancel-edit-sell" class="hidden w-full py-2 text-slate-500 text-sm font-medium">Cancel Edit</button>
                     </form>
                 </section>
             </div>
@@ -138,9 +148,15 @@
                 </div>
 
                 <!-- Tabs Navigation -->
-                <div class="flex border-b border-slate-200">
-                    <button onclick="switchTab('analysis')" id="tab-btn-analysis" class="px-6 py-2 font-semibold transition-all tab-active">Profit Analysis</button>
-                    <button onclick="switchTab('history')" id="tab-btn-history" class="px-6 py-2 font-semibold text-slate-400 transition-all hover:text-slate-600">Transaction History</button>
+                <div class="flex items-center justify-between border-b border-slate-200">
+                    <div class="flex">
+                        <button onclick="switchTab('analysis')" id="tab-btn-analysis" class="px-6 py-2 font-semibold transition-all tab-active">Profit Analysis</button>
+                        <button onclick="switchTab('history')" id="tab-btn-history" class="px-6 py-2 font-semibold text-slate-400 transition-all hover:text-slate-600">Transaction History</button>
+                    </div>
+                    <div class="relative pb-1">
+                        <input type="text" id="search-bar" oninput="renderApp()" placeholder="Search transactions..." class="pl-8 pr-4 py-1.5 text-xs bg-white border border-slate-200 rounded-full focus:ring-2 focus:ring-indigo-500 outline-none w-48 md:w-64 transition-all">
+                        <svg class="absolute left-2.5 top-2.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </div>
                 </div>
 
                 <!-- Tab Content: Analysis -->
@@ -157,13 +173,12 @@
                                     <th class="px-6 py-3 text-right">Stock Qty</th>
                                     <th class="px-6 py-3 text-right">Stock Value</th>
                                     <th class="px-6 py-3 text-right">Sold / Total</th>
-                                    <th class="px-6 py-3 text-right">Avg Cost</th>
                                     <th class="px-6 py-3 text-right text-blue-700">Avg Sell</th>
                                     <th class="px-6 py-3 text-right font-bold text-emerald-700">Profit</th>
                                 </tr>
                             </thead>
                             <tbody id="inventory-table-body" class="divide-y divide-slate-100">
-                                <tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">No data yet.</td></tr>
+                                <!-- JS Populated -->
                             </tbody>
                         </table>
                     </div>
@@ -188,7 +203,7 @@
                                 </tr>
                             </thead>
                             <tbody id="history-table-body" class="divide-y divide-slate-100 text-sm">
-                                <tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">No activity recorded.</td></tr>
+                                <!-- JS Populated -->
                             </tbody>
                         </table>
                     </div>
@@ -209,6 +224,7 @@
         const selectItem = document.getElementById('sell-item-select');
         const inventoryTable = document.getElementById('inventory-table-body');
         const historyTable = document.getElementById('history-table-body');
+        const searchBar = document.getElementById('search-bar');
         
         const totalProfitDisplay = document.getElementById('total-profit-display');
         const totalProfitStat = document.getElementById('total-profit-stat');
@@ -262,63 +278,145 @@
             }, 3000);
         }
 
-        // Action: Buy
+        // Action: Submit Buy (Modified for Auto-Merge)
         buyForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const name = document.getElementById('buy-item').value.trim();
-            const qty = parseFloat(document.getElementById('buy-qty').value);
-            const price = parseFloat(document.getElementById('buy-price').value);
+            const editId = document.getElementById('edit-id').value;
+            const nameInput = document.getElementById('buy-item').value.trim();
+            const qtyInput = parseFloat(document.getElementById('buy-qty').value);
+            const priceInput = parseFloat(document.getElementById('buy-price').value);
 
-            const tx = {
-                id: Date.now() + Math.random(),
-                type: 'buy',
-                item: name,
-                qty: qty,
-                price: price,
-                timestamp: new Date().toISOString()
-            };
+            if (editId) {
+                // Update specific existing entry
+                const index = transactions.findIndex(t => t.id == editId);
+                if (index !== -1) {
+                    transactions[index].item = nameInput;
+                    transactions[index].qty = qtyInput;
+                    transactions[index].price = priceInput;
+                    notify(`Updated entry for ${nameInput}.`);
+                }
+                clearEditMode();
+            } else {
+                // NEW: Auto-merge logic
+                const existingIndex = transactions.findIndex(t => t.type === 'buy' && t.item.toLowerCase() === nameInput.toLowerCase());
+                
+                if (existingIndex !== -1) {
+                    // Item exists, merge and calculate weighted average cost
+                    const existing = transactions[existingIndex];
+                    const totalCost = (existing.qty * existing.price) + (qtyInput * priceInput);
+                    const totalQty = existing.qty + qtyInput;
+                    
+                    transactions[existingIndex].qty = totalQty;
+                    transactions[existingIndex].price = totalCost / totalQty; // New avg cost
+                    transactions[existingIndex].timestamp = new Date().toISOString(); // Update time
+                    notify(`Merged ${qtyInput} more ${nameInput} into existing stock.`);
+                } else {
+                    // Truly new item
+                    transactions.push({
+                        id: Date.now() + Math.random(),
+                        type: 'buy',
+                        item: nameInput,
+                        qty: qtyInput,
+                        price: priceInput,
+                        timestamp: new Date().toISOString()
+                    });
+                    notify(`Added ${qtyInput} ${nameInput} to inventory.`);
+                }
+            }
 
-            transactions.push(tx);
             saveAndRefresh();
             buyForm.reset();
-            notify(`Added ${qty} ${name} to stock.`);
         });
 
-        // Action: Sell
+        // Action: Submit Sell
         sellForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            const editId = document.getElementById('edit-id-sell').value;
             const name = selectItem.value;
             const qty = parseFloat(document.getElementById('sell-qty').value);
             const price = parseFloat(document.getElementById('sell-price').value);
 
-            if (!name) return notify("Please select an item", "error");
-            
             const summary = getInventorySummary();
-            const stockAvailable = summary[name] ? summary[name].totalQtyBought - summary[name].qtySold : 0;
-
-            if (qty > stockAvailable) {
-                return notify(`Only ${stockAvailable.toFixed(2)} units of ${name} left!`, "error");
+            const stockAvailableBeforeThis = summary[name] ? summary[name].totalQtyBought - summary[name].qtySold : 0;
+            
+            let actualAvailable = stockAvailableBeforeThis;
+            if (editId) {
+                const oldTx = transactions.find(t => t.id == editId);
+                if (oldTx && oldTx.item === name) actualAvailable += oldTx.qty;
             }
 
-            const tx = {
-                id: Date.now() + Math.random(),
-                type: 'sell',
-                item: name,
-                qty: qty,
-                price: price,
-                timestamp: new Date().toISOString()
-            };
+            if (qty > actualAvailable) {
+                return notify(`Only ${actualAvailable.toFixed(2)} units available for ${name}.`, "error");
+            }
 
-            transactions.push(tx);
+            if (editId) {
+                const index = transactions.findIndex(t => t.id == editId);
+                if (index !== -1) {
+                    transactions[index].item = name;
+                    transactions[index].qty = qty;
+                    transactions[index].price = price;
+                    notify(`Updated sale for ${name}.`);
+                }
+                clearEditMode();
+            } else {
+                transactions.push({
+                    id: Date.now() + Math.random(),
+                    type: 'sell',
+                    item: name,
+                    qty: qty,
+                    price: price,
+                    timestamp: new Date().toISOString()
+                });
+                notify(`Logged sale of ${qty} ${name}.`);
+            }
+
             saveAndRefresh();
             sellForm.reset();
-            notify(`Logged sale of ${qty} ${name}.`);
         });
 
+        function editTransaction(id) {
+            const t = transactions.find(item => item.id == id);
+            if (!t) return;
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (t.type === 'buy') {
+                document.getElementById('edit-id').value = t.id;
+                document.getElementById('buy-item').value = t.item;
+                document.getElementById('buy-qty').value = t.qty;
+                document.getElementById('buy-price').value = t.price.toFixed(2);
+                document.getElementById('buy-submit-btn').innerText = "Update Entry";
+                document.getElementById('cancel-edit-buy').classList.remove('hidden');
+                document.getElementById('buy-item').focus();
+            } else {
+                document.getElementById('edit-id-sell').value = t.id;
+                document.getElementById('sell-item-select').value = t.item;
+                document.getElementById('sell-qty').value = t.qty;
+                document.getElementById('sell-price').value = t.price.toFixed(2);
+                document.getElementById('sell-submit-btn').innerText = "Update Sale";
+                document.getElementById('cancel-edit-sell').classList.remove('hidden');
+            }
+            notify("Editing transaction...", "success");
+        }
+
+        function clearEditMode() {
+            document.getElementById('edit-id').value = "";
+            document.getElementById('edit-id-sell').value = "";
+            document.getElementById('buy-submit-btn').innerText = "Add to Inventory";
+            document.getElementById('sell-submit-btn').innerText = "Log Sale";
+            document.getElementById('cancel-edit-buy').classList.add('hidden');
+            document.getElementById('cancel-edit-sell').classList.add('hidden');
+        }
+
+        document.getElementById('cancel-edit-buy').onclick = () => { buyForm.reset(); clearEditMode(); };
+        document.getElementById('cancel-edit-sell').onclick = () => { sellForm.reset(); clearEditMode(); };
+
         function deleteTransaction(id) {
-            transactions = transactions.filter(t => t.id !== id);
-            saveAndRefresh();
-            notify("Transaction removed", "success");
+            if (confirm("Delete this transaction? This will affect stock and profit totals.")) {
+                transactions = transactions.filter(t => t.id !== id);
+                saveAndRefresh();
+                notify("Transaction removed", "success");
+            }
         }
 
         function saveAndRefresh() {
@@ -326,60 +424,43 @@
             renderApp();
         }
 
-        function resetDayProfit() {
-            const hasData = transactions.length > 0;
-            if (!hasData) return notify("Nothing to reset", "error");
+        function fullReset() {
+            if (confirm("Wipe ALL data?")) {
+                transactions = [];
+                saveAndRefresh();
+                notify("All data wiped.");
+            }
+        }
 
-            const confirmMsg = "Reset Day? This clears today's sales and profits while carrying over your remaining stock. \n\nTip: Download the PDF report first!";
-            
-            if (confirm(confirmMsg)) {
+        function resetDayProfit() {
+            if (confirm("Reset Daily Profit? Remaining stock will be merged into single starting entries for tomorrow.")) {
                 const summary = getInventorySummary();
                 const newTransactions = [];
-                
                 Object.keys(summary).forEach(name => {
                     const item = summary[name];
                     const remainingQty = item.totalQtyBought - item.qtySold;
-                    
                     if (remainingQty > 0) {
-                        const avgCost = item.totalCost / item.totalQtyBought;
                         newTransactions.push({
                             id: Date.now() + Math.random(),
                             type: 'buy',
                             item: name,
                             qty: remainingQty,
-                            price: avgCost,
-                            timestamp: new Date().toISOString(),
-                            note: 'Carried Forward'
+                            price: item.totalCost / item.totalQtyBought,
+                            timestamp: new Date().toISOString()
                         });
                     }
                 });
-
                 transactions = newTransactions;
                 saveAndRefresh();
-                notify("Daily profit cleared. Inventory carried forward.");
+                notify("Day reset. Stock carried forward.");
             }
         }
 
-        function fullReset() {
-            if (confirm("DANGER: This will permanently delete ALL stock and transaction data. Are you sure?")) {
-                transactions = [];
-                saveAndRefresh();
-                notify("All data wiped clean.");
-            }
-        }
-
-        // Core Calculation Engine
+        // Calculation Helpers
         function getInventorySummary() {
             const summary = {};
             transactions.forEach(t => {
-                if (!summary[t.item]) {
-                    summary[t.item] = { 
-                        totalQtyBought: 0, 
-                        totalCost: 0, 
-                        qtySold: 0, 
-                        revenue: 0 
-                    };
-                }
+                if (!summary[t.item]) summary[t.item] = { totalQtyBought: 0, totalCost: 0, qtySold: 0, revenue: 0 };
                 if (t.type === 'buy') {
                     summary[t.item].totalQtyBought += t.qty;
                     summary[t.item].totalCost += (t.qty * t.price);
@@ -393,223 +474,119 @@
 
         function renderApp() {
             const summary = getInventorySummary();
+            const searchTerm = searchBar.value.toLowerCase();
             const sortedItems = Object.keys(summary).sort();
 
-            // 1. Update Dropdown
-            const currentSelection = selectItem.value;
+            // 1. Dropdown
+            const cur = selectItem.value;
             selectItem.innerHTML = '<option value="">Choose item...</option>';
             sortedItems.forEach(name => {
                 const stock = summary[name].totalQtyBought - summary[name].qtySold;
                 if (stock > 0) {
                     const opt = document.createElement('option');
-                    opt.value = name;
-                    opt.textContent = `${name} (${stock.toFixed(2)} in stock)`;
+                    opt.value = name; opt.textContent = `${name} (${stock.toFixed(2)} in stock)`;
                     selectItem.appendChild(opt);
                 }
             });
-            selectItem.value = currentSelection;
+            selectItem.value = cur;
 
-            // 2. Update Profit Analysis Table
+            // 2. Performance Table
             inventoryTable.innerHTML = '';
             let gProfit = 0, gRevenue = 0, gCost = 0, gStockUnits = 0, gStockValue = 0;
-
-            if (sortedItems.length === 0) {
-                inventoryTable.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">No data yet.</td></tr>`;
-            } else {
-                sortedItems.forEach(name => {
-                    const item = summary[name];
-                    const avgCost = item.totalQtyBought > 0 ? item.totalCost / item.totalQtyBought : 0;
-                    const avgSell = item.qtySold > 0 ? item.revenue / item.qtySold : 0;
-                    const cogs = item.qtySold * avgCost;
-                    const profit = item.revenue - cogs;
-                    const currentStock = item.totalQtyBought - item.qtySold;
-                    const currentStockValue = currentStock * avgCost;
-
-                    gProfit += profit;
-                    gRevenue += item.revenue;
-                    gCost += cogs;
-                    gStockUnits += currentStock;
-                    gStockValue += currentStockValue;
-
-                    const row = document.createElement('tr');
-                    row.className = "hover:bg-slate-50 transition-colors";
-                    row.innerHTML = `
-                        <td class="px-6 py-4">
-                            <div class="font-bold text-slate-800">${name}</div>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <span class="text-sm font-bold ${currentStock > 0 ? 'text-indigo-600' : 'text-slate-400'}">
-                                ${currentStock.toFixed(2)}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <span class="text-sm font-medium text-slate-600">$${currentStockValue.toFixed(2)}</span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <span class="text-sm font-semibold">${item.qtySold.toFixed(2)}</span>
-                            <span class="text-xs text-slate-400"> / ${item.totalQtyBought.toFixed(2)}</span>
-                        </td>
-                        <td class="px-6 py-4 text-right text-slate-500 text-sm">$${avgCost.toFixed(2)}</td>
-                        <td class="px-6 py-4 text-right text-blue-600 font-medium text-sm">$${avgSell.toFixed(2)}</td>
-                        <td class="px-6 py-4 text-right">
-                            <span class="font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}">
-                                $${profit.toFixed(2)}
-                            </span>
-                        </td>
-                    `;
-                    inventoryTable.appendChild(row);
-                });
-            }
-
-            // 3. Update History Table
-            historyTable.innerHTML = '';
-            if (transactions.length === 0) {
-                historyTable.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 italic">No activity yet.</td></tr>`;
-            } else {
-                [...transactions].reverse().forEach(t => {
-                    const row = document.createElement('tr');
-                    const time = new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    row.className = "hover:bg-slate-50";
-                    row.innerHTML = `
-                        <td class="px-6 py-3 text-slate-400 text-xs">${time}</td>
-                        <td class="px-6 py-3">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${t.type === 'buy' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}">
-                                ${t.type}
-                            </span>
-                        </td>
-                        <td class="px-6 py-3 font-medium flex items-center gap-2">
-                            ${t.item}
-                            ${t.note ? `<span class="text-[10px] bg-slate-100 text-slate-500 px-1 rounded font-normal italic">${t.note}</span>` : ''}
-                        </td>
-                        <td class="px-6 py-3 text-right">${t.qty}</td>
-                        <td class="px-6 py-3 text-right text-slate-500">$${t.price.toFixed(2)}</td>
-                        <td class="px-6 py-3 text-right font-semibold">$${(t.qty * t.price).toFixed(2)}</td>
-                        <td class="px-6 py-3 text-center">
-                            <button onclick="deleteTransaction(${t.id})" class="text-slate-300 hover:text-red-500 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                            </button>
-                        </td>
-                    `;
-                    historyTable.appendChild(row);
-                });
-            }
-
-            // 4. Update Stats Cards
-            totalProfitDisplay.textContent = `$${gProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            totalProfitStat.textContent = `$${gProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            totalRevenueEl.textContent = `$${gRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            totalCostEl.textContent = `$${gCost.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
-            totalStockUnitsEl.textContent = gStockUnits.toFixed(1);
-            totalStockValueEl.textContent = `$${gStockValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
+            sortedItems.forEach(name => {
+                const item = summary[name];
+                const avgCost = item.totalQtyBought > 0 ? item.totalCost / item.totalQtyBought : 0;
+                const profit = item.revenue - (item.qtySold * avgCost);
+                const currentStock = item.totalQtyBought - item.qtySold;
+                const currentStockValue = currentStock * avgCost;
+
+                gProfit += profit; gRevenue += item.revenue; gCost += (item.qtySold * avgCost);
+                gStockUnits += currentStock; gStockValue += currentStockValue;
+
+                if (searchTerm && !name.toLowerCase().includes(searchTerm)) return;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 font-bold text-slate-800">${name}</td>
+                    <td class="px-6 py-4 text-right font-bold ${currentStock > 0 ? 'text-indigo-600' : 'text-slate-300'}">${currentStock.toFixed(2)}</td>
+                    <td class="px-6 py-4 text-right text-slate-500">$${currentStockValue.toFixed(2)}</td>
+                    <td class="px-6 py-4 text-right">${item.qtySold.toFixed(2)} <span class="text-xs text-slate-400">/ ${item.totalQtyBought.toFixed(1)}</span></td>
+                    <td class="px-6 py-4 text-right text-blue-600 font-medium">$${(item.qtySold > 0 ? item.revenue/item.qtySold : 0).toFixed(2)}</td>
+                    <td class="px-6 py-4 text-right font-bold ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}">$${profit.toFixed(2)}</td>
+                `;
+                inventoryTable.appendChild(row);
+            });
+
+            // 3. History Table
+            historyTable.innerHTML = '';
+            const filteredHistory = transactions.filter(t => 
+                t.item.toLowerCase().includes(searchTerm) || 
+                t.type.toLowerCase().includes(searchTerm)
+            );
+
+            [...filteredHistory].reverse().forEach(t => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50 group";
+                row.innerHTML = `
+                    <td class="px-6 py-3 text-slate-400 text-xs">${new Date(t.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                    <td class="px-6 py-3">
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${t.type==='buy'?'bg-emerald-100 text-emerald-700':'bg-blue-100 text-blue-700'}">${t.type}</span>
+                    </td>
+                    <td class="px-6 py-3 font-medium">${t.item}</td>
+                    <td class="px-6 py-3 text-right">${t.qty.toFixed(1)}</td>
+                    <td class="px-6 py-3 text-right text-slate-500">$${t.price.toFixed(2)}</td>
+                    <td class="px-6 py-3 text-right font-bold">$${(t.qty * t.price).toFixed(2)}</td>
+                    <td class="px-6 py-3 text-center space-x-2">
+                        <button onclick="editTransaction(${t.id})" class="text-slate-400 hover:text-indigo-600 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button onclick="deleteTransaction(${t.id})" class="text-slate-300 hover:text-red-500 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </td>
+                `;
+                historyTable.appendChild(row);
+            });
+
+            // 4. Update Stats
+            totalProfitDisplay.textContent = `$${gProfit.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+            totalProfitStat.textContent = `$${gProfit.toLocaleString(undefined, {minimumFractionDigits:2})}`;
+            totalRevenueEl.textContent = `$${gRevenue.toLocaleString()}`;
+            totalCostEl.textContent = `$${gCost.toLocaleString()}`;
+            totalStockValueEl.textContent = `$${gStockValue.toLocaleString()}`;
+            totalStockUnitsEl.textContent = gStockUnits.toFixed(1);
             const margin = gRevenue > 0 ? (gProfit / gRevenue) * 100 : 0;
             marginEl.textContent = `${margin.toFixed(1)}%`;
             marginEl.className = `text-xl font-bold ${margin >= 0 ? 'text-indigo-600' : 'text-red-600'}`;
         }
 
-        // --- EXPORT FEATURES ---
-
-        function downloadPDFReport() {
-            if (transactions.length === 0) return notify("No data to report", "error");
-
+        // PDF Logic
+        async function downloadPDFReport() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            const date = new Date().toLocaleDateString();
             const summary = getInventorySummary();
-            const sortedItems = Object.keys(summary).sort();
-
-            // Header
-            doc.setFontSize(20);
-            doc.text("Trader Daily Profit Report", 14, 22);
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text(`Generated on: ${date}`, 14, 28);
-
-            // Summary Stats Section
-            doc.setFontSize(12);
-            doc.setTextColor(0);
-            doc.text("Performance Overview", 14, 40);
-
-            const gRev = document.getElementById('total-revenue').innerText;
-            const gCost = document.getElementById('total-cost').innerText;
-            const gProf = document.getElementById('total-profit-stat').innerText;
-            const gMargin = document.getElementById('avg-margin').innerText;
-
-            doc.autoTable({
-                startY: 45,
-                head: [['Total Revenue', 'Total COGS', 'Net Profit', 'Avg Margin']],
-                body: [[gRev, gCost, gProf, gMargin]],
-                theme: 'grid',
-                headStyles: { fillColor: [79, 70, 229] }
-            });
-
-            // Item Performance Table
-            doc.text("Item Performance Analysis", 14, doc.lastAutoTable.finalY + 15);
+            doc.setFontSize(20); doc.text("Trader Daily Report", 14, 20);
+            doc.setFontSize(10); doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 28);
             
-            const analysisBody = sortedItems.map(name => {
-                const item = summary[name];
-                const avgCost = item.totalQtyBought > 0 ? (item.totalCost / item.totalQtyBought).toFixed(2) : "0.00";
-                const avgSell = item.qtySold > 0 ? (item.revenue / item.qtySold).toFixed(2) : "0.00";
-                const profit = (item.revenue - (item.qtySold * parseFloat(avgCost))).toFixed(2);
-                const currentStock = (item.totalQtyBought - item.qtySold).toFixed(2);
-                
+            const stats = [[
+                document.getElementById('total-revenue').innerText,
+                document.getElementById('total-cost').innerText,
+                document.getElementById('total-profit-display').innerText
+            ]];
+            doc.autoTable({ startY: 35, head: [['Revenue', 'Total COGS', 'Net Profit']], body: stats });
+            
+            const itemBody = Object.keys(summary).map(name => {
+                const avgCost = summary[name].totalCost / summary[name].totalQtyBought;
                 return [
                     name,
-                    currentStock,
-                    `${item.qtySold.toFixed(2)} / ${item.totalQtyBought.toFixed(2)}`,
-                    `$${avgCost}`,
-                    `$${avgSell}`,
-                    `$${profit}`
+                    (summary[name].totalQtyBought - summary[name].qtySold).toFixed(2),
+                    `$${(summary[name].revenue - (summary[name].qtySold * avgCost)).toFixed(2)}`
                 ];
             });
-
-            doc.autoTable({
-                startY: doc.lastAutoTable.finalY + 20,
-                head: [['Item Name', 'In Stock', 'Sold/Total', 'Avg Cost', 'Avg Sell', 'Profit']],
-                body: analysisBody,
-                headStyles: { fillColor: [51, 65, 85] }
-            });
-
-            // Transaction History Table
-            doc.addPage();
-            doc.text("Detailed Transaction History", 14, 22);
-            
-            const historyBody = [...transactions].reverse().map(t => [
-                new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                t.type.toUpperCase(),
-                t.item,
-                t.qty,
-                `$${t.price.toFixed(2)}`,
-                `$${(t.qty * t.price).toFixed(2)}`,
-                t.note || ""
-            ]);
-
-            doc.autoTable({
-                startY: 30,
-                head: [['Time', 'Type', 'Item', 'Qty', 'Price', 'Total', 'Note']],
-                body: historyBody,
-                headStyles: { fillColor: [100, 116, 139] }
-            });
-
-            doc.save(`Trader_Report_${date.replace(/\//g, '-')}.pdf`);
-            notify("PDF Report downloaded");
-        }
-
-        function exportToCSV() {
-            if (transactions.length === 0) return notify("No data to export", "error");
-            const rows = [["Timestamp", "Type", "Item", "Quantity", "Price", "Total Value", "Note"]];
-            transactions.forEach(t => {
-                rows.push([t.timestamp, t.type.toUpperCase(), t.item, t.qty, t.price, (t.qty * t.price).toFixed(2), t.note || ""]);
-            });
-            const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `trader_export_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            notify("CSV downloaded successfully");
+            doc.autoTable({ startY: doc.lastAutoTable.finalY + 10, head: [['Item', 'Stock Left', 'Realized Profit']], body: itemBody });
+            doc.save(`TraderReport_${Date.now()}.pdf`);
+            notify("PDF Report Ready");
         }
     </script>
 </body>
